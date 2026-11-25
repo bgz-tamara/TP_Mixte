@@ -4,7 +4,6 @@ type Query {
     movie_with_title(_title: String!): Movie
 }
 
-# mutations réservées aux administrateurs (JWT requis)
 type Mutation {
     add_movie(_id: String!, _title: String!, _director: String!, _rating: Float!): Movie
     update_movie_name(_id: String!, _title: String!): Movie
