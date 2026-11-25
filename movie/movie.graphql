@@ -1,3 +1,19 @@
 type Query {
+    all_movies: [Movie]
     movie_with_id(_id: String!): Movie
+    movie_with_title(_title: String!): Movie
+}
+
+# mutations réservées aux administrateurs (JWT requis)
+type Mutation {
+    add_movie(_id: String!, _title: String!, _director: String!, _rating: Float!): Movie
+    update_movie_name(_id: String!, _title: String!): Movie
+    delete_movie(_id: String!): Movie
+}
+
+type Movie {
+    id: String!
+    title: String!
+    director: String!
+    rating: Float!
 }

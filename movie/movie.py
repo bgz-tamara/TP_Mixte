@@ -1,5 +1,7 @@
 from ariadne import graphql_sync, make_executable_schema, load_schema_from_path, ObjectType, QueryType, MutationType
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, make_response
+from flask_jwt_extended import JWTManager
+import os
 
 import resolvers as r
 
@@ -7,7 +9,27 @@ PORT = 3001
 HOST = '0.0.0.0'
 app = Flask(__name__)
 
-# todo create elements for Ariadne
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY", "dev-secret-change-this"
+)
+
+jwt = JWTManager(app)
+
+# elements for Ariadne
+type_defs = load_schema_from_path('movie.graphql')
+
+query = QueryType()
+query.set_field('all_movies', r.all_movies)
+query.set_field('movie_with_id', r.movie_with_id)
+query.set_field('movie_with_title', r.movie_with_title)
+
+mutation = MutationType()
+mutation.set_field('add_movie', r.add_movie)
+mutation.set_field('update_movie_name', r.update_movie_name)
+mutation.set_field('delete_movie', r.delete_movie)
+
+movie = ObjectType('Movie')
+schema = make_executable_schema(type_defs, movie, query, mutation)
 
 # root message
 @app.route("/", methods=['GET'])
@@ -17,7 +39,15 @@ def home():
 # graphql entry points
 @app.route('/graphql', methods=['POST'])
 def graphql_server():
-    # todo to complete
+    data = request.get_json()
+    success, result = graphql_sync(
+        schema,
+        data,
+        context_value=None,
+        debug=app.debug
+    )
+    status_code = 200 if success else 400
+    return jsonify(result), status_code
 
 if __name__ == "__main__":
     print("Server running in port %s"%(PORT))
