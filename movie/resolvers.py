@@ -24,9 +24,6 @@ def write_movies(movies):
 
     movies = list(collection.find({}, {"_id": 0}))
 
-    with open('./data/movies.json', 'w') as file:
-        json.dump({'movies': movies}, file, indent=4)
-
 def check_admin():
     verify_jwt_in_request()
     if not get_jwt().get("admin", False):

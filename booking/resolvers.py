@@ -35,9 +35,6 @@ def write_bookings(bookings):
 
     bookings = list(collection.find({}, {"_id": 0}))
 
-    with open('./data/bookings.json', 'w') as file:
-        json.dump({'bookings': bookings}, file, indent=4)
-
 # l'utilisateur concerné ou un administrateur
 def check_permission(userid):
     verify_jwt_in_request()
