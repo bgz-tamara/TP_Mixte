@@ -2,6 +2,49 @@ services:
   movie:
     build: ./movie/
     ports:
-      - "3200:3200"
-  # to continue
+      - "3001:3001"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-this}
+    volumes:
+      - movie_data:/app/data
 
+  schedule:
+    build: ./schedule/
+    ports:
+      - "3002:3002"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-this}
+      MOVIE_URL: http://movie:3001
+    volumes:
+      - schedule_data:/app/data
+    depends_on:
+      - movie
+
+  booking:
+    build: ./booking/
+    ports:
+      - "3003:3003"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-this}
+      MOVIE_URL: http://movie:3001
+      SCHEDULE_URL: http://schedule:3002
+    volumes:
+      - booking_data:/app/data
+    depends_on:
+      - movie
+      - schedule
+
+  user:
+    build: ./user/
+    ports:
+      - "3004:3004"
+    environment:
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:-dev-secret-change-this}
+    volumes:
+      - user_data:/app/data
+
+volumes:
+  movie_data:
+  schedule_data:
+  booking_data:
+  user_data:

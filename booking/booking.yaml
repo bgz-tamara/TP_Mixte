@@ -1,0 +1,113 @@
+openapi: 3.1.1
+info:
+  title: Booking Service API
+  description: >
+    Gestion des réservations en GraphQL, via un unique point d'entrée.
+    Le schéma complet est décrit dans booking.graphql.
+    Interroge le service Movie en GraphQL (détails des films) et le service
+    Schedule en REST (vérification de la programmation).
+  version: "2.0.0"
+  contact:
+    name: Tamara Benghezal
+    email: tamara.benghezal@imt-atlantique.net
+servers:
+  - url: http://localhost:3003
+
+tags:
+  - name: user
+    description: Routes publiques
+
+paths:
+  /:
+    get:
+      tags: [user]
+      summary: Page d'accueil
+      operationId: home
+      responses:
+        "200":
+          description: Message de bienvenue
+          content:
+            text/html:
+              schema: { type: string }
+
+  /graphql:
+    post:
+      tags: [user]
+      summary: Point d'entrée GraphQL
+      operationId: graphql_server
+      description: |
+        | Opération | Type | Accès |
+        |---|---|---|
+        | all_bookings | query | public |
+        | booking_with_userid(_userid) | query | propriétaire ou admin |
+        | booking_with_userid_date_movie(_userid, _date, _movieid) | query | propriétaire ou admin |
+        | add_booking(_userid, _date, _movieid) | mutation | propriétaire ou admin |
+        | delete_booking(_userid, _date, _movieid) | mutation | propriétaire ou admin |
+
+        Dates au format AAAAMMJJ. Les erreurs métier (permission, token absent,
+        réservation introuvable ou existante, film non programmé, service
+        indisponible) sont renvoyées dans `errors` avec un statut 200.
+      security: [{}, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GraphQLRequest" }
+            examples:
+              all_bookings:
+                summary: Toutes les réservations
+                value:
+                  query: '{ all_bookings { userid dates { date movies { id } } } }'
+              booking_with_userid:
+                summary: Réservations détaillées d'un utilisateur
+                value:
+                  query: '{ booking_with_userid(_userid: "chris_rivers") { dates { date movies { title rating director } } } }'
+              booking_with_userid_date_movie:
+                summary: Une réservation
+                value:
+                  query: '{ booking_with_userid_date_movie(_userid: "chris_rivers", _date: "20151201", _movieid: "267eedb8-0f5d-42d5-8f43-72426b9fb3e6") { date movies { title } } }'
+              add_booking:
+                summary: Créer une réservation
+                value:
+                  query: 'mutation { add_booking(_userid: "chris_rivers", _date: "20151202", _movieid: "96798c08-d19b-4986-a05d-7da856efb697") { userid dates { date } } }'
+              delete_booking:
+                summary: Annuler une réservation
+                value:
+                  query: 'mutation { delete_booking(_userid: "chris_rivers", _date: "20151201", _movieid: "267eedb8-0f5d-42d5-8f43-72426b9fb3e6") { userid dates { date } } }'
+      responses:
+        "200":
+          description: Requête exécutée
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GraphQLResponse" }
+        "400":
+          description: Requête invalide (syntaxe ou champ inconnu)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GraphQLResponse" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token obtenu via POST /login sur le service User (port 3004)
+
+  schemas:
+    GraphQLRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+        variables: { type: object }
+    GraphQLResponse:
+      type: object
+      properties:
+        data: { type: [object, "null"] }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message: { type: string, example: Missing permission }

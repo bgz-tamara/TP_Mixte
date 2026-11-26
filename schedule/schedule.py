@@ -7,15 +7,21 @@ import os
 
 app = Flask(__name__)
 
+app.config["JWT_SECRET_KEY"] = os.environ.get(
+    "JWT_SECRET_KEY", "dev-secret-change-this"
+)
+
+jwt = JWTManager(app)
+
 PORT = 3002
 HOST = '0.0.0.0'
-MOVIE_URL = "http://localhost:3200"
+MOVIE_URL = os.environ.get("MOVIE_URL", "http://localhost:3001")
 
-with open('{}/databases/times.json'.format("."), "r") as jsf:
+with open('{}/data/times.json'.format("."), "r") as jsf:
    schedules = json.load(jsf)["schedule"]
 
 def write(schedule):
-    with open('{}/databases/times.json'.format("."), 'w') as f:
+    with open('{}/data/times.json'.format("."), 'w') as f:
         full = {}
         full['schedule']=schedules               
         json.dump(full, f)
@@ -24,22 +30,34 @@ def check_admin():
     claims = get_jwt()
     return claims.get("admin", False)
 
+MOVIE_QUERY = """
+query($id: String!) {
+    movie_with_id(_id: $id) { id title director rating }
+}
+"""
+
+# requête GraphQL sur le service Movie : renvoie le film, ou None s'il n'existe pas
+def get_movie(movieid):
+    r = requests.post(f"{MOVIE_URL}/graphql",
+                      json={"query": MOVIE_QUERY, "variables": {"id": movieid}})
+    return (r.json().get("data") or {}).get("movie_with_id")
+
 def add_movie_detail_to_tab_movies(movieid, tab_movies_details) :
     try:
-        r = requests.get(f"{MOVIE_URL}/movies/{movieid}")
+        movie = get_movie(movieid)
     except requests.exceptions.RequestException:
         return make_response(jsonify({"error": "Movie service is not available"}), 503)
-    if r.status_code == 200:
-        tab_movies_details.append(r.json())
+    if movie:
+        tab_movies_details.append(movie)
     else:
         tab_movies_details.append({"id": movieid})
     
 def movie_is_existing(movieid):
     try:
-        r = requests.get(f'{MOVIE_URL}/movies/{movieid}')
+        movie = get_movie(movieid)
     except requests.exceptions.ConnectionError:
         return None
-    return r.status_code == 200
+    return movie is not None
         
 # root message
 @app.route("/", methods=['GET'])

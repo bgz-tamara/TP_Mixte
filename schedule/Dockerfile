@@ -1,19 +1,19 @@
-FROM python
-# can you find a lighter image?
+# image officielle légère
+FROM python:3.13-alpine
 
 WORKDIR /app
 
-# copy the requirements file in the workdir
-RUN
+# les dépendances d'abord : cette couche reste en cache tant que requirements.txt ne change pas
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-# install the Python requirements
-RUN
+# puis le code et les données
+COPY . .
 
-# grpc compilation of proto files or copy of generated files
-RUN
+# les données modifiées par le service sont conservées dans un volume
+VOLUME ["/app/data"]
 
-# copy the app files and directories
-RUN
+EXPOSE 3002
 
-# start movie.py when the container is started
-CMD 
+# -u : les print s'affichent directement dans les logs
+CMD ["python", "-u", "schedule.py"]
