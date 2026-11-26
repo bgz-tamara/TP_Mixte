@@ -1,12 +1,30 @@
 import json
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
+from pymongo import MongoClient
+from bson.json_util import dumps
+
+client = MongoClient("mongodb://root:example@localhost:27017/")
+db = client["movies"]
+
+collection = db["movies"]
+if collection.count_documents({}) == 0:
+    with open('./data/movies.json', 'r') as file:
+        movies = json.load(file)["movies"]
+        collection.insert_many(movies)
 
 def load_movies():
-    with open('{}/data/movies.json'.format("."), "r") as file:
-        return json.load(file)['movies']
+    collection = db["movies"]
+    movies = list(collection.find({}, {"_id": 0}))
+    return movies
 
 def write_movies(movies):
-    with open('{}/data/movies.json'.format("."), "w") as file:
+    collection = db["movies"]
+    collection.delete_many({})
+    collection.insert_many(movies)
+
+    movies = list(collection.find({}, {"_id": 0}))
+
+    with open('./data/movies.json', 'w') as file:
         json.dump({'movies': movies}, file, indent=4)
 
 def check_admin():
