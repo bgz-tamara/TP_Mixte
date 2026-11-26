@@ -9,9 +9,7 @@ PORT = 3003
 HOST = '0.0.0.0'
 app = Flask(__name__)
 
-app.config["JWT_SECRET_KEY"] = os.environ.get(
-    "JWT_SECRET_KEY", "dev-secret-change-this"
-)
+app.config["JWT_SECRET_KEY"] = "super-secret"
 
 jwt = JWTManager(app)
 
