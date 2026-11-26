@@ -3,7 +3,7 @@ from flask_jwt_extended import verify_jwt_in_request, get_jwt
 from pymongo import MongoClient
 from bson.json_util import dumps
 
-client = MongoClient("mongodb://root:example@localhost:27017/")
+client = MongoClient("mongodb://root:example@mongo:27017/")
 db = client["movies"]
 
 collection = db["movies"]

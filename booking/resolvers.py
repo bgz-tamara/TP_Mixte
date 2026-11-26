@@ -2,6 +2,8 @@ import json
 import os
 import requests
 from flask_jwt_extended import verify_jwt_in_request, get_jwt, get_jwt_identity
+from pymongo import MongoClient
+from bson.json_util import dumps
 
 MOVIE_URL = os.environ.get("MOVIE_URL", "http://localhost:3001")
 SCHEDULE_URL = os.environ.get("SCHEDULE_URL", "http://localhost:3002")
@@ -12,12 +14,28 @@ query($id: String!) {
 }
 """
 
+client = MongoClient("mongodb://root:example@mongo:27017/")
+db = client["movies"]
+
+collection = db["bookings"]
+if collection.count_documents({}) == 0:
+    with open('./data/bookings.json', 'r') as file:
+        bookings = json.load(file)["bookings"]
+        collection.insert_many(bookings)
+
 def load_bookings():
-    with open('{}/data/bookings.json'.format("."), "r") as file:
-        return json.load(file)['bookings']
+    collection = db["bookings"]
+    bookings = list(collection.find({}, {"_id": 0}))
+    return bookings
 
 def write_bookings(bookings):
-    with open('{}/data/bookings.json'.format("."), "w") as file:
+    collection = db["bookings"]
+    collection.delete_many({})
+    collection.insert_many(bookings)
+
+    bookings = list(collection.find({}, {"_id": 0}))
+
+    with open('./data/bookings.json', 'w') as file:
         json.dump({'bookings': bookings}, file, indent=4)
 
 # l'utilisateur concerné ou un administrateur
