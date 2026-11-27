@@ -1,15 +1,17 @@
-# UE-AD-A1-MIXTE
+# TP-MIXTE
 
 ## Lancer l'application avec Docker
 
-Prérequis : Docker Desktop démarré. Au premier lancement, les images (dont
-MongoDB) sont téléchargées automatiquement, ce qui demande une connexion Internet.
-Les commandes se lancent depuis la racine du projet.
+Prérequis : Docker Desktop démarré.
 
-    docker compose up --build -d     # construit les images et lance les conteneurs
-    docker compose logs -f           # suit les logs
-    docker compose down              # arrête et supprime les conteneurs
-    docker compose down -v           # idem, et réinitialise les données
+Commande à lancer :
+
+    docker compose up
+
+Pour arréter les conteneurs :
+
+    Ctrl+c
+    docker compose down
 
 | Service  | URL                           | Documentation          |
 |----------|-------------------------------|------------------------|
@@ -19,5 +21,4 @@ Les commandes se lancent depuis la racine du projet.
 | user     | http://localhost:3004         | user/user.yaml         |
 
 `movie` et `booking` stockent leurs données dans MongoDB (consultable via
-mongo-express sur http://localhost:8081). Ils se connectent à l'hôte `mongo` :
-ils se lancent donc avec Docker Compose.
+mongo-express sur http://localhost:8081). Ils se connectent à l'hôte `mongo` et se lancent donc avec Docker Compose.

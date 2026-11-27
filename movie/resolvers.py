@@ -1,7 +1,7 @@
 import json
 from flask_jwt_extended import verify_jwt_in_request, get_jwt
-from pymongo import MongoClient
-from bson.json_util import dumps
+from pymongo import MongoClient, ReturnDocument
+from pymongo.errors import DuplicateKeyError
 
 client = MongoClient("mongodb://root:example@mongo:27017/")
 db = client["movies"]
@@ -11,18 +11,13 @@ if collection.count_documents({}) == 0:
     with open('./data/movies.json', 'r') as file:
         movies = json.load(file)["movies"]
         collection.insert_many(movies)
+# deux films ne peuvent pas avoir le même id
+collection.create_index("id", unique=True)
 
 def load_movies():
     collection = db["movies"]
     movies = list(collection.find({}, {"_id": 0}))
     return movies
-
-def write_movies(movies):
-    collection = db["movies"]
-    collection.delete_many({})
-    collection.insert_many(movies)
-
-    movies = list(collection.find({}, {"_id": 0}))
 
 def check_admin():
     verify_jwt_in_request()
@@ -42,47 +37,39 @@ def movie_with_title(_,info,_title):
         if movie['title'] == _title:
             return movie
 
+# chaque mutation ne touche que le document concerné
+
 def add_movie(_,info,_id,_title,_director,_rating):
     check_admin()
-    movies = load_movies()
-    for movie in movies:
-        if movie['id'] == _id:
-            raise Exception("movie ID already exists")
     new_movie = {'id': _id, 'title': _title, 'director': _director, 'rating': _rating}
-    movies.append(new_movie)
-    write_movies(movies)
+    try:
+        db["movies"].insert_one(new_movie)
+    except DuplicateKeyError:
+        raise Exception("movie ID already exists")
     return new_movie
+
+def update_movie(_id, changes):
+    movie = db["movies"].find_one_and_update(
+        {'id': _id}, {'$set': changes},
+        projection={"_id": 0}, return_document=ReturnDocument.AFTER)
+    if not movie:
+        raise Exception("movie ID not found")
+    return movie
 
 def update_movie_name(_,info,_id,_title):
     check_admin()
-    movies = load_movies()
-    for movie in movies:
-        if movie['id'] == _id:
-            movie['title'] = _title
-            write_movies(movies)
-            return movie
-    raise Exception("movie ID not found")
+    return update_movie(_id, {'title': _title})
 
 def update_movie_rate(_,info,_id,_rate):
     check_admin()
-    movies = load_movies()
-    for movie in movies:
-        if movie['id'] == _id:
-            movie['rating'] = _rate
-            write_movies(movies)
-            return movie
-    raise Exception("movie ID not found")
+    return update_movie(_id, {'rating': _rate})
 
 def delete_movie(_,info,_id):
     check_admin()
-    movies = load_movies()
-    for movie in movies:
-        if movie['id'] == _id:
-            movies.remove(movie)
-            write_movies(movies)
-            return movie
-    raise Exception("movie ID not found")
-
+    movie = db["movies"].find_one_and_delete({'id': _id}, projection={"_id": 0})
+    if not movie:
+        raise Exception("movie ID not found")
+    return movie
 
 def load_actors():
     with open('{}/data/actors.json'.format("."), "r") as file:
