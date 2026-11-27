@@ -45,7 +45,7 @@ paths:
   /login:
     post:
       tags: [user]
-      summary: Connexion, renvoie un token JWT valable 1 h
+      summary: Connexion, renvoie un token JWT valable 720 h (30 jours)
       operationId: login
       requestBody:
         required: true

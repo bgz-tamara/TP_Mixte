@@ -1,0 +1,128 @@
+openapi: 3.1.1
+info:
+  title: Movie Service API
+  description: >
+    Consultation et gestion du catalogue de films en GraphQL, via un unique
+    point d'entrée. Le schéma complet est décrit dans movie.graphql.
+    Les films sont stockés dans MongoDB, les acteurs dans data/actors.json.
+  version: "2.0.0"
+  contact:
+    name: Ludivine Levallois
+    email: ludivine.levallois@imt-atlantique.net
+servers:
+  - url: http://localhost:3001
+
+tags:
+  - name: user
+    description: Routes publiques
+
+paths:
+  /:
+    get:
+      tags: [user]
+      summary: Page d'accueil
+      operationId: home
+      responses:
+        "200":
+          description: Message de bienvenue
+          content:
+            text/html:
+              schema: { type: string }
+
+  /graphql:
+    post:
+      tags: [user]
+      summary: Point d'entrée GraphQL
+      operationId: graphql_server
+      description: |
+        | Opération | Type | Accès |
+        |---|---|---|
+        | all_movies | query | public |
+        | movie_with_id(_id) | query | public |
+        | movie_with_title(_title) | query | public |
+        | actor_with_id(_id) | query | public |
+        | add_movie(_id, _title, _director, _rating) | mutation | admin |
+        | update_movie_name(_id, _title) | mutation | admin |
+        | update_movie_rate(_id, _rate) | mutation | admin |
+        | delete_movie(_id) | mutation | admin |
+
+        Le champ `actors` d'un film n'est calculé que s'il est demandé.
+        Un film ou un acteur introuvable renvoie `null` pour une query. Les
+        erreurs (permission, token absent, ID introuvable ou existant) sont
+        renvoyées dans `errors` avec un statut 200.
+      security: [{}, { bearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/GraphQLRequest" }
+            examples:
+              all_movies:
+                summary: Tous les films
+                value:
+                  query: '{ all_movies { id title director rating } }'
+              movie_with_id:
+                summary: Un film et ses acteurs
+                value:
+                  query: '{ movie_with_id(_id: "96798c08-d19b-4986-a05d-7da856efb697") { title rating actors { firstname lastname birthyear } } }'
+              movie_with_title:
+                summary: Un film par son titre exact
+                value:
+                  query: '{ movie_with_title(_title: "Spectre") { id director } }'
+              actor_with_id:
+                summary: Un acteur
+                value:
+                  query: '{ actor_with_id(_id: "actor4") { firstname lastname birthyear films } }'
+              add_movie:
+                summary: Ajouter un film
+                value:
+                  query: 'mutation { add_movie(_id: "demo", _title: "Demo", _director: "Someone", _rating: 5.0) { id title } }'
+              update_movie_name:
+                summary: Modifier le titre
+                value:
+                  query: 'mutation { update_movie_name(_id: "demo", _title: "Demo II") { title } }'
+              update_movie_rate:
+                summary: Modifier la note
+                value:
+                  query: 'mutation { update_movie_rate(_id: "demo", _rate: 8.4) { title rating } }'
+              delete_movie:
+                summary: Supprimer un film
+                value:
+                  query: 'mutation { delete_movie(_id: "demo") { title } }'
+      responses:
+        "200":
+          description: Requête exécutée
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GraphQLResponse" }
+        "400":
+          description: Requête invalide (syntaxe ou champ inconnu)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GraphQLResponse" }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token obtenu via POST /login sur le service User (port 3004)
+
+  schemas:
+    GraphQLRequest:
+      type: object
+      required: [query]
+      properties:
+        query: { type: string }
+        variables: { type: object }
+    GraphQLResponse:
+      type: object
+      properties:
+        data: { type: [object, "null"] }
+        errors:
+          type: array
+          items:
+            type: object
+            properties:
+              message: { type: string, example: Admin permission required }

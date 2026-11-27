@@ -7,6 +7,9 @@ services:
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: example
+    # conserve la base entre deux "down" / "up"
+    volumes:
+      - mongo_data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
       interval: 5s
@@ -71,6 +74,7 @@ services:
       - user_data:/app/data
 
 volumes:
+  mongo_data:
   movie_data:
   schedule_data:
   booking_data:

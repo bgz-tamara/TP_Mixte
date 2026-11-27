@@ -4,6 +4,7 @@ info:
   description: >
     Gestion des réservations en GraphQL, via un unique point d'entrée.
     Le schéma complet est décrit dans booking.graphql.
+    Les réservations sont stockées dans MongoDB.
     Interroge le service Movie en GraphQL (détails des films) et le service
     Schedule en REST (vérification de la programmation).
   version: "2.0.0"
